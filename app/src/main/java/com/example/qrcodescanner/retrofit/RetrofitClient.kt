@@ -1,5 +1,6 @@
-package com.example.qrcodescanner
+package com.example.qrcodescanner.retrofit
 
+import com.example.qrcodescanner.service.ApiService
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 

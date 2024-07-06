@@ -1,7 +1,8 @@
-package com.example.qrcodescanner
+package com.example.qrcodescanner.ui
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import com.example.qrcodescanner.R
 import com.example.qrcodescanner.databinding.ActivitySuccessBinding
 
 class SuccessActivity : AppCompatActivity() {

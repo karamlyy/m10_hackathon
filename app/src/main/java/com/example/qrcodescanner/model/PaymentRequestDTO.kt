@@ -1,4 +1,4 @@
-package com.example.qrcodescanner
+package com.example.qrcodescanner.model
 
 import java.math.BigDecimal
 

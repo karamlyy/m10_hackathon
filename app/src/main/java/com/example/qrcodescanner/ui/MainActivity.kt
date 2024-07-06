@@ -1,14 +1,20 @@
-package com.example.qrcodescanner
+package com.example.qrcodescanner.ui
 
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.example.qrcodescanner.model.ErrorDTO
+import com.example.qrcodescanner.model.PaymentRequestDTO
+import com.example.qrcodescanner.model.QRCodeScanDTO
+import com.example.qrcodescanner.retrofit.RetrofitClient
+import com.example.qrcodescanner.model.TransactionDTO
 import com.example.qrcodescanner.databinding.ActivityMainBinding
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
 import com.google.zxing.integration.android.IntentIntegrator
 import com.google.zxing.integration.android.IntentResult
+import okhttp3.ResponseBody
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -53,7 +59,7 @@ class MainActivity : AppCompatActivity() {
             } else {
                 val scannedText = result.contents
                 try {
-                    val qrCodeScanDTO = parseJsonToQRCodeScanDTO(scannedText)
+                    val qrCodeScanDTO = parseJson<QRCodeScanDTO>(scannedText)
                     binding.textViewResult.text = "Parsed QRCodeScanDTO: $qrCodeScanDTO"
                     sendPaymentRequest(qrCodeScanDTO)
                 } catch (e: JsonSyntaxException) {
@@ -67,9 +73,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun parseJsonToQRCodeScanDTO(json: String): QRCodeScanDTO {
+    private inline fun <reified T> parseJson(json: String): T {
         val gson = Gson()
-        return gson.fromJson(json, QRCodeScanDTO::class.java)
+        return gson.fromJson(json, T::class.java)
     }
 
     private fun sendPaymentRequest(qrCodeScanDTO: QRCodeScanDTO) {
@@ -81,17 +87,26 @@ class MainActivity : AppCompatActivity() {
             amount = amount
         )
 
+        fun decodeErrorBody(body: ResponseBody?): ErrorDTO {
+            val body = body ?: return ErrorDTO("Unexpected error")
+            try {
+                return parseJson<ErrorDTO>(body.string())
+            } catch (t: Throwable) {
+                return ErrorDTO("Unexpected error")
+            }
+        }
+
         RetrofitClient.instance.sendPaymentRequest(paymentRequestDTO)
             .enqueue(object : Callback<TransactionDTO> {
                 override fun onResponse(call: Call<TransactionDTO>, response: Response<TransactionDTO>) {
                     if (response.isSuccessful) {
                         binding.textViewResult.text = "Payment sent successfully"
                         Toast.makeText(this@MainActivity, "Payment sent successfully", Toast.LENGTH_SHORT).show()
-                        // Start SuccessActivity
                         startActivity(Intent(this@MainActivity, SuccessActivity::class.java))
                     } else {
                         binding.textViewResult.text = "Failed to send payment request"
-                        Toast.makeText(this@MainActivity, "Error: ${response.errorBody()?.string()}", Toast.LENGTH_SHORT).show()
+                        val error = decodeErrorBody(response.errorBody())
+                        Toast.makeText(this@MainActivity, "${error.message}", Toast.LENGTH_SHORT).show()
                     }
                 }
 
